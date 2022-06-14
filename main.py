@@ -159,7 +159,7 @@ def cracksInImage(imageName, threshold, save, closes=1):
             else:
                 processedImage[i][j] = 1
     for i in range(closes):
-        processedImage = io.closing(processedImage)
+        processedImage = closing(processedImage)
     if save:
         io.imsave(finalImageFolderName+"\\"+imageName[len(testImageFolderName):], processedImage)
     return processedImage
@@ -182,6 +182,8 @@ def whoAmI():
     print("I am the color finder")
 
 def __main__():
+    horizontalOverVerticalThresh = 0.5
+    start_time = time.time()
     imagesToTest = getImageList()
     points = []
     count = 0
@@ -194,6 +196,21 @@ def __main__():
         points.append(point)
         count += 1
     print(points)
+    processedPoints = []
+    for point in points:
+        totalCrack = sum(point)
+        processedPoints.append(np.array(point)/totalCrack)
+    print(processedPoints)
+    for i in range(len(imagesToTest)):
+        point = processedPoints[i]
+        status = ""
+        if point[0]/point[1] < 1-horizontalOverVerticalThresh:
+            status = "Vertical Crack"
+        elif point[0]/point[1] > 1+horizontalOverVerticalThresh:
+            status = "Horizontal Crack"
+        else:
+            status = "Pothole"
+        print(imagesToTest[i], "Damage:", status)
     print("--- %s seconds ---" % (time.time() - start_time))
 if(__name__ == '__main__'):
     __main__()
