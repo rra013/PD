@@ -11,10 +11,23 @@ from skimage.morphology import closing
 from skimage.color import rgb2gray
 import matplotlib as plt
 import cv2
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 annotatedFilename = "Annotated Cracks"
-
+roadMarkingFolder = "Road Markings"
 videoFilename = "D:\\2022 Summer Startup Work\\Pavment Distress One File\\Video\\testVid.mov"
+testImageFolderName = "Test Images"
+saveImageFolderName = "Processed Images"
+finalImageFolderName = "Cracks"
+
+def getImageList():
+    imgList = os.listdir(testImageFolderName)
+    for i in range(len(imgList)):
+        imgList[i] = testImageFolderName+'\\'+imgList[i]
+    return imgList
+
+imagesToAverage = getImageList()
 
 def findNextRight(image, pixel, maxI, maxJ):
     if pixel[1] >= maxJ - 1:
@@ -87,16 +100,10 @@ def maxFinder(image, jumpSize, output, function, name="crack"):
         #print(annotatedImage)
     return maxLen
 
-
-testImageFolderName = "Test Images"
-saveImageFolderName = "Processed Images"
-finalImageFolderName = "Cracks"
-
-
-def getImageList():
-    imgList = os.listdir(testImageFolderName)
+def getVideoFrames(folderName):
+    imgList = os.listdir(folderName)
     for i in range(len(imgList)):
-        imgList[i] = testImageFolderName+'\\'+imgList[i]
+        imgList[i] = folderName+'\\'+imgList[i]
     return imgList
 
 def getAdjacent(i, j, maxI, maxJ):
@@ -123,7 +130,6 @@ def getAdjacent(i, j, maxI, maxJ):
 def emptyImageCopy(image):
     return np.reshape(np.zeros(len(image)*len(image[0])*3), (len(image), len(image[0]), 3))
 
-imagesToAverage = getImageList()
 
 #DO NOT USE: DEPRECATED
 def averageSingleImage(imageName):
@@ -166,6 +172,18 @@ def cracksInImage(imageName, threshold, save, closes=1):
         io.imsave(finalImageFolderName+"\\"+imageName[len(testImageFolderName):], processedImage)
     return processedImage
 
+def markingsInImage(imageName, save, saveFolder=finalImageFolderName):
+    processedImage = processImage(imageName, True)
+    for i in range(len(processedImage)):
+        for j in range(len(processedImage[0])):
+            if processedImage[i][j] < 0.05:
+                processedImage[i][j] = 0
+            else:
+                processedImage[i][j] = 1
+    if save:
+        io.imsave(saveFolder+"\\"+imageName[len(testImageFolderName):], processedImage)
+    return processedImage
+
 def noiseRemoval(image):
     returned = image[:]
     for i in range(len(image)):
@@ -180,18 +198,16 @@ def noiseRemoval(image):
                 returned[i][j] = 0
     return returned
 
-def whoAmI():
-    print("I am the color finder")
 
-<<<<<<< HEAD
-def readFramesFromImage(imagePath):
+
+def readFramesFromImage(imagePath, folderName, numFrames=-1):
     cam = cv2.VideoCapture(imagePath)
   
     try:
         
         # creating a folder named data
-        if not os.path.exists('data'):
-            os.makedirs('data')
+        if not os.path.exists(folderName):
+            os.makedirs(folderName)
     
     # if not created then raise error
     except OSError:
@@ -216,6 +232,9 @@ def readFramesFromImage(imagePath):
             # increasing counter so that it will
             # show how many frames are created
             currentframe += 1
+            #print(currentframe, numFrames, currentframe==numFrames)
+            if currentframe == numFrames:
+                return "Done"
         else:
             break
     
@@ -224,49 +243,22 @@ def readFramesFromImage(imagePath):
     cv2.destroyAllWindows()
 
 
-def testNoTemplate():
-    horizontalOverVerticalThresh = 0.5
-    
-=======
-def __main__():
-    horizontalOverVerticalThresh = 0.5
-    start_time = time.time()
->>>>>>> 7d445c174c8b57c4a3ddf535cf42c9992ab5fd8d
-    imagesToTest = getImageList()
-    points = []
-    count = 0
-    for image in imagesToTest: 
-        print("Image number:", count)
-        processed = cracksInImage(image, .5, True, 1)
-        point = []
-        point.append(maxFinder(processed, 10, True, findNextRight, str(count)+"TestHorizontal"))
-        point.append(maxFinder(processed, 10, True, findNextDown, str(count)+"TestVertical"))
-        points.append(point)
-        count += 1
-    print(points)
-    processedPoints = []
-    for point in points:
-        totalCrack = sum(point)
-        processedPoints.append(np.array(point)/totalCrack)
-    print(processedPoints)
-    for i in range(len(imagesToTest)):
-        point = processedPoints[i]
-        status = ""
-        if point[0]/point[1] < 1-horizontalOverVerticalThresh:
-            status = "Vertical Crack"
-        elif point[0]/point[1] > 1+horizontalOverVerticalThresh:
-            status = "Horizontal Crack"
-        else:
-            status = "Pothole"
-        print(imagesToTest[i], "Damage:", status)
-<<<<<<< HEAD
+def verticalCrackCheck(image, trimParameters):
+    conformityToVerticalCrack = []
+    for i in range(len(image[0])):
+        conformityToVerticalCrack.append(sum(image[:,i])/len(image[:,i]))
+    return conformityToVerticalCrack
+
 
 def __main__():
     start_time = time.time()
-    readFramesFromImage(videoFilename)
-=======
->>>>>>> 7d445c174c8b57c4a3ddf535cf42c9992ab5fd8d
+    frameFolderName = "data"
+    readFramesFromImage(videoFilename, frameFolderName, 100)
+    frames = getVideoFrames(frameFolderName)
+    for frame in frames:
+        cracksInImage(frame, 0.3, True)
     print("--- %s seconds ---" % (time.time() - start_time))
+
 if(__name__ == '__main__'):
     __main__()
 
