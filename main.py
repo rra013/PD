@@ -10,9 +10,11 @@ from skimage.morphology import disk
 from skimage.morphology import closing
 from skimage.color import rgb2gray
 import matplotlib as plt
-
+import cv2
 
 annotatedFilename = "Annotated Cracks"
+
+videoFilename = "D:\\2022 Summer Startup Work\\Pavment Distress One File\\Video\\testVid.mov"
 
 def findNextRight(image, pixel, maxI, maxJ):
     if pixel[1] >= maxJ - 1:
@@ -159,7 +161,7 @@ def cracksInImage(imageName, threshold, save, closes=1):
             else:
                 processedImage[i][j] = 1
     for i in range(closes):
-        processedImage = io.closing(processedImage)
+        processedImage = closing(processedImage)
     if save:
         io.imsave(finalImageFolderName+"\\"+imageName[len(testImageFolderName):], processedImage)
     return processedImage
@@ -181,7 +183,49 @@ def noiseRemoval(image):
 def whoAmI():
     print("I am the color finder")
 
-def __main__():
+def readFramesFromImage(imagePath):
+    cam = cv2.VideoCapture(imagePath)
+  
+    try:
+        
+        # creating a folder named data
+        if not os.path.exists('data'):
+            os.makedirs('data')
+    
+    # if not created then raise error
+    except OSError:
+        print ('Error: Creating directory of data')
+    
+    # frame
+    currentframe = 0
+    
+    while(True):
+        
+        # reading from frame
+        ret,frame = cam.read()
+    
+        if ret:
+            # if video is still left continue creating images
+            name = './data/frame' + str(currentframe) + '.jpg'
+            print ('Creating...' + name)
+    
+            # writing the extracted images
+            cv2.imwrite(name, frame)
+    
+            # increasing counter so that it will
+            # show how many frames are created
+            currentframe += 1
+        else:
+            break
+    
+    # Release all space and windows once done
+    cam.release()
+    cv2.destroyAllWindows()
+
+
+def testNoTemplate():
+    horizontalOverVerticalThresh = 0.5
+    
     imagesToTest = getImageList()
     points = []
     count = 0
@@ -194,6 +238,25 @@ def __main__():
         points.append(point)
         count += 1
     print(points)
+    processedPoints = []
+    for point in points:
+        totalCrack = sum(point)
+        processedPoints.append(np.array(point)/totalCrack)
+    print(processedPoints)
+    for i in range(len(imagesToTest)):
+        point = processedPoints[i]
+        status = ""
+        if point[0]/point[1] < 1-horizontalOverVerticalThresh:
+            status = "Vertical Crack"
+        elif point[0]/point[1] > 1+horizontalOverVerticalThresh:
+            status = "Horizontal Crack"
+        else:
+            status = "Pothole"
+        print(imagesToTest[i], "Damage:", status)
+
+def __main__():
+    start_time = time.time()
+    readFramesFromImage(videoFilename)
     print("--- %s seconds ---" % (time.time() - start_time))
 if(__name__ == '__main__'):
     __main__()
