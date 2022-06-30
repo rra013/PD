@@ -183,6 +183,7 @@ def noiseRemoval(image):
 def whoAmI():
     print("I am the color finder")
 
+<<<<<<< HEAD
 def readFramesFromImage(imagePath):
     cam = cv2.VideoCapture(imagePath)
   
@@ -226,6 +227,11 @@ def readFramesFromImage(imagePath):
 def testNoTemplate():
     horizontalOverVerticalThresh = 0.5
     
+=======
+def __main__():
+    horizontalOverVerticalThresh = 0.5
+    start_time = time.time()
+>>>>>>> 7d445c174c8b57c4a3ddf535cf42c9992ab5fd8d
     imagesToTest = getImageList()
     points = []
     count = 0
@@ -253,10 +259,13 @@ def testNoTemplate():
         else:
             status = "Pothole"
         print(imagesToTest[i], "Damage:", status)
+<<<<<<< HEAD
 
 def __main__():
     start_time = time.time()
     readFramesFromImage(videoFilename)
+=======
+>>>>>>> 7d445c174c8b57c4a3ddf535cf42c9992ab5fd8d
     print("--- %s seconds ---" % (time.time() - start_time))
 if(__name__ == '__main__'):
     __main__()
