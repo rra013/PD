@@ -131,6 +131,37 @@ def verticalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, n
         io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
     return [conformityToVerticalCrack, cracks]
 
+def horizontalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, name="crack"):
+    conformityToHorizontalCrack = []
+    cracks = []
+    trimmed = image[:]
+    trimmed = trimmed[:,trimParameters[1]:len(trimmed[0])-trimParameters[1]]
+    trimmed = trimmed[trimParameters[0]:len(trimmed)-trimParameters[0]]
+    maxI = len(trimmed)
+    maxJ = len(trimmed[0])
+
+    print(len(image), len(image[0]), len(trimmed))
+    for i in range(len(trimmed)):
+        conformityToHorizontalCrack.append(sum(trimmed[i,:])/len(trimmed[i,:]))
+        if conformityToHorizontalCrack[i] < threshold:
+            cracks.append(i)
+    print(cracks)
+    if save:
+        annotatedImage = []
+        for i in range(maxI):
+            for j in range(maxJ):
+                if trimmed[i][j] == 0:
+                    annotatedImage.append([0, 0, 0])
+                else:
+                    annotatedImage.append([255, 255, 255])
+        annotatedImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
+        for i in range(maxI):
+            for j in range(maxJ):
+                if i in cracks:
+                    annotatedImage[i][j] = [0, 255, 0]
+        io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
+    return [conformityToHorizontalCrack, cracks]
+
 def getVideoFrames(folderName):
     imgList = os.listdir(folderName)
     for i in range(len(imgList)):
@@ -276,7 +307,7 @@ def readFramesFromImage(imagePath, folderName, numFrames=-1):
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
-    numFrames = 10
+    numFrames = 400
     readFramesFromImage(videoFilename, frameFolderName, numFrames)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
@@ -285,7 +316,8 @@ def __main__():
     for frame in frames:
         processedFrames.append(cracksInImage(frame, 0.3, True)[:])
     for frame in processedFrames:
-        crackData.append(verticalCrackCheck(frame, [400, 800], 0.6, True, str(count)))
+        crackData.append(verticalCrackCheck(frame, [400, 800], 0.6, True, "vertical"+str(count)))
+        crackData.append(horizontalCrackCheck(frame, [400, 800], 0.6, True, "horizontal"+str(count)))
         count += 1
     print(crackData)
     print("--- %s seconds ---" % (time.time() - start_time))
