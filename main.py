@@ -100,6 +100,37 @@ def maxFinder(image, jumpSize, output, function, name="crack"):
         #print(annotatedImage)
     return maxLen
 
+def verticalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, name="crack"):
+    conformityToVerticalCrack = []
+    cracks = []
+    trimmed = image[:]
+    trimmed = trimmed[:,trimParameters[1]:len(trimmed[0])-trimParameters[1]]
+    trimmed = trimmed[trimParameters[0]:len(trimmed)-trimParameters[0]]
+    maxI = len(trimmed)
+    maxJ = len(trimmed[0])
+
+    print(len(image), len(image[0]), len(trimmed))
+    for i in range(len(trimmed[0])):
+        conformityToVerticalCrack.append(sum(trimmed[:,i])/len(trimmed[:,i]))
+        if conformityToVerticalCrack[i] < threshold:
+            cracks.append(i)
+    print(cracks)
+    if save:
+        annotatedImage = []
+        for i in range(maxI):
+            for j in range(maxJ):
+                if trimmed[i][j] == 0:
+                    annotatedImage.append([0, 0, 0])
+                else:
+                    annotatedImage.append([255, 255, 255])
+        annotatedImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
+        for i in range(maxI):
+            for j in range(maxJ):
+                if j in cracks:
+                    annotatedImage[i][j] = [255, 0, 0]
+        io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
+    return [conformityToVerticalCrack, cracks]
+
 def getVideoFrames(folderName):
     imgList = os.listdir(folderName)
     for i in range(len(imgList)):
@@ -242,21 +273,21 @@ def readFramesFromImage(imagePath, folderName, numFrames=-1):
     cam.release()
     cv2.destroyAllWindows()
 
-
-def verticalCrackCheck(image, trimParameters):
-    conformityToVerticalCrack = []
-    for i in range(len(image[0])):
-        conformityToVerticalCrack.append(sum(image[:,i])/len(image[:,i]))
-    return conformityToVerticalCrack
-
-
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
-    readFramesFromImage(videoFilename, frameFolderName, 100)
+    numFrames = 10
+    readFramesFromImage(videoFilename, frameFolderName, numFrames)
     frames = getVideoFrames(frameFolderName)
+    processedFrames = []
+    crackData = []
+    count = 0
     for frame in frames:
-        cracksInImage(frame, 0.3, True)
+        processedFrames.append(cracksInImage(frame, 0.3, True)[:])
+    for frame in processedFrames:
+        crackData.append(verticalCrackCheck(frame, [400, 800], 0.6, True, str(count)))
+        count += 1
+    print(crackData)
     print("--- %s seconds ---" % (time.time() - start_time))
 
 if(__name__ == '__main__'):
