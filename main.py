@@ -14,22 +14,31 @@ import cv2
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+#Folder where annotated images go
 annotatedFilename = "Annotated Cracks"
+#Folder where image highlighting road markings are saved
 roadMarkingFolder = "Road Markings"
+#Location of the video processed
 videoFilename = "D:\\2022 Summer Startup Work\\Pavment Distress One File\\Video\\testVid.mov"
+#Location of images processed
 testImageFolderName = "Test Images"
+#Where greyscaled and closed images are saved
 saveImageFolderName = "Processed Images"
+#Where black/white images are saved
 finalImageFolderName = "Cracks"
 
 def getImageList():
+    """Get all images in the folder of tested images"""
     imgList = os.listdir(testImageFolderName)
     for i in range(len(imgList)):
         imgList[i] = testImageFolderName+'\\'+imgList[i]
     return imgList
 
+#List of images to process
 imagesToAverage = getImageList()
 
 def findNextRight(image, pixel, maxI, maxJ):
+    """Find the next black pixel to the right of PIXEL in IMAGE with height MAXI and length MAXJ"""
     if pixel[1] >= maxJ - 1:
         return "End image"
     elif image[pixel[0]][pixel[1]+1] == 0:
@@ -46,6 +55,7 @@ def findNextRight(image, pixel, maxI, maxJ):
         return "End of crack"
 
 def findNextDown(image, pixel, maxI, maxJ):
+    """Find the next black pixel below PIXEL in IMAGE with height MAXI and length MAXJ"""
     if pixel[0] >= maxI -1:
         return "End image"
     elif image[pixel[0]+1][pixel[1]] == 0:
@@ -62,6 +72,7 @@ def findNextDown(image, pixel, maxI, maxJ):
         return "End of crack"
 
 def maxFinder(image, jumpSize, output, function, name="crack"):
+    """Find the longest output of FUNCTION checking every JUMPSIZE pixel in IMAGE, saving with name NAME if OUTPUT"""
     maxI = len(image)
     maxJ = len(image[0])
     maxLen = 0
@@ -101,6 +112,7 @@ def maxFinder(image, jumpSize, output, function, name="crack"):
     return maxLen
 
 def verticalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, name="crack"):
+    """Find a vertical crack in IMAGE after being trimmed by TRIMPARAMETERS; if more than THRESHOLD pixels in a column are black, identify a crack and save under name NAME if SAVE"""
     conformityToVerticalCrack = []
     cracks = []
     trimmed = image[:]
@@ -132,6 +144,7 @@ def verticalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, n
     return [conformityToVerticalCrack, cracks]
 
 def horizontalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, name="crack"):
+    """Find a horizontal crack in IMAGE after being trimmed by TRIMPARAMETERS; if more than THRESHOLD pixels in a row are black, identify a crack and save under name NAME if SAVE"""
     conformityToHorizontalCrack = []
     cracks = []
     trimmed = image[:]
@@ -163,12 +176,14 @@ def horizontalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False,
     return [conformityToHorizontalCrack, cracks]
 
 def getVideoFrames(folderName):
+    """Get the frames in the FOLDERNAME folder"""
     imgList = os.listdir(folderName)
     for i in range(len(imgList)):
         imgList[i] = folderName+'\\'+imgList[i]
     return imgList
 
 def getAdjacent(i, j, maxI, maxJ):
+    """Get all pixels adjacent to the pixel at I, J in an image of size MAXI by MAXJ"""
     topLeft = [i-1, j-1]
     left = [i, j-1]
     bottomLeft = [i+1, j-1]
@@ -190,37 +205,21 @@ def getAdjacent(i, j, maxI, maxJ):
     return adjacent
 
 def emptyImageCopy(image):
+    """Return an empty image with the same size as IMAGE"""
     return np.reshape(np.zeros(len(image)*len(image[0])*3), (len(image), len(image[0]), 3))
 
-
-#DO NOT USE: DEPRECATED
-def averageSingleImage(imageName):
-    image = io.imread(imageName)
-    maxI = len(image)
-    maxJ = len(image[0])
-    imageAveraged = emptyImageCopy(image)
-    for i in range(maxI):
-        for j in range(maxJ):
-            adjacents = getAdjacent(i, j, maxI, maxJ)
-            colorSum = np.zeros(3)
-            for cell in adjacents:
-                colorSum += image[cell[0], cell[1]]
-            colorAverage = colorSum//9
-            imageAveraged[i][j] = colorAverage
-    io.imsave(saveImageFolderName+"\\"+imageName, imageAveraged)
-    return imageAveraged
-
 def processImage(imageName, save):
+    """Greyscale and close image at IMAGENAME; save if SAVE"""
     image = io.imread(imageName)
     #print(image)
     grayImage = rgb2gray(image)
     closedImage = closing(grayImage)
-    
     if save:
         io.imsave(saveImageFolderName+"\\"+imageName[len(testImageFolderName):], closedImage)
     return closedImage
 
 def cracksInImage(imageName, threshold, save, closes=1):
+    """Find cracks in image at IMAGENAME, saving if SAVE and closing CLOSES times; pixel set to white/black if over/under THRESHOLD"""
     processedImage = processImage(imageName, True)
     for i in range(len(processedImage)):
         for j in range(len(processedImage[0])):
@@ -235,6 +234,7 @@ def cracksInImage(imageName, threshold, save, closes=1):
     return processedImage
 
 def markingsInImage(imageName, save, saveFolder=finalImageFolderName):
+    """Highlight white/yellow road markings in image at IMAGENAME, saving in SAVEFOLDER if SAVE"""
     processedImage = processImage(imageName, True)
     for i in range(len(processedImage)):
         for j in range(len(processedImage[0])):
@@ -247,6 +247,7 @@ def markingsInImage(imageName, save, saveFolder=finalImageFolderName):
     return processedImage
 
 def noiseRemoval(image):
+    """Attempt to smooth noise in IMAGE, do not use; very time and resource intensive, not as good as closing"""
     returned = image[:]
     for i in range(len(image)):
         for j in range(len(image[0])):
@@ -263,6 +264,7 @@ def noiseRemoval(image):
 
 
 def readFramesFromImage(imagePath, folderName, numFrames=-1):
+    """Read and save NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
     cam = cv2.VideoCapture(imagePath)
   
     try:
