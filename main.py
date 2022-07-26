@@ -333,7 +333,7 @@ def partialCrackCheckHor(image, length, save, name="crack"):
         io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
 
 def partialCrackCheckVer(image, length, save, name="crack"):
-    """Check for LENGTH pixel strings of black pixels in IMAGE horizontally, saving under name NAME if SAVE"""
+    """Check for LENGTH pixel strings of black pixels in IMAGE vertically, saving under name NAME if SAVE"""
     maxI = len(image)
     maxJ = len(image[0])
     cracks = []
