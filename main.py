@@ -331,6 +331,7 @@ def partialCrackCheckHor(image, length, save, name="crack"):
         for pixel in cracks:
             annotatedImage[pixel[0]][pixel[1]] = [200, 200, 50]
         io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
+    return cracks
 
 def partialCrackCheckVer(image, length, save, name="crack"):
     """Check for LENGTH pixel strings of black pixels in IMAGE vertically, saving under name NAME if SAVE"""
@@ -354,6 +355,8 @@ def partialCrackCheckVer(image, length, save, name="crack"):
         for pixel in cracks:
             annotatedImage[pixel[0]][pixel[1]] = [50, 200, 200]
         io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
+    return cracks
+
 
 def processFullImageDamageFromVideo():
     frameFolderName = "data"
@@ -371,6 +374,13 @@ def processFullImageDamageFromVideo():
         count += 1
     print(crackData)
 
+def getGap(values):
+    gaps = []
+    for value in range(min(values), max(values)):
+        if value not in values:
+            gaps.append(value)
+    return gaps
+
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
@@ -378,17 +388,23 @@ def __main__():
     readFramesFromImage(videoFilename, frameFolderName, numFrames)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
-    crackData = []
+    #crackData = []
     count = 0
     for frame in frames:
         print(count)
         processedFrames.append(cracksInImage(frame, 0.3, True)[:])
     for frame in processedFrames:
         frame = trimImage(frame, [400, 800])
-        crackData.append(partialCrackCheckHor(frame, 10, True, "horizontal"+str(count)))
-        crackData.append(partialCrackCheckVer(frame, 10, True, "vertical"+str(count)))
+        damageInFrame = []
+        damageInFrame.append(partialCrackCheckHor(frame, 5, True, "horizontal"+str(count)))
+        damageInFrame.append(partialCrackCheckVer(frame, 5, True, "vertical"+str(count)))
+        allDamagedPixels = []
+        for list in damageInFrame:
+            for pixel in list:
+                allDamagedPixels.append(pixel)
+        print(allDamagedPixels)
         count += 1
-    print(crackData)
+    #print(crackData)
     print("--- %s seconds ---" % (time.time() - start_time))
 
 if(__name__ == '__main__'):
