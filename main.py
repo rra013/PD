@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -26,6 +27,9 @@ testImageFolderName = "Test Images"
 saveImageFolderName = "Processed Images"
 #Where black/white images are saved
 finalImageFolderName = "Cracks"
+#Global list of damaged pixels
+allDamagedPixels = []
+
 
 def getImageList():
     """Get all images in the folder of tested images"""
@@ -264,7 +268,18 @@ def noiseRemoval(image):
                 returned[i][j] = 0
     return returned
 
-
+def saveAnnImage(cracks, maxI, maxJ, image, name):
+    annotatedImage = []
+    for i in range(maxI):
+        for j in range(maxJ):
+            if image[i][j] == 0:
+                annotatedImage.append([0, 0, 0])
+            else:
+                annotatedImage.append([255, 255, 255])
+    annotatedImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
+    for pixel in cracks:
+        annotatedImage[pixel[0]][pixel[1]] = [50, 200, 200]
+    io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
 
 def readFramesFromImage(imagePath, folderName, numFrames=-1):
     """Read and save NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
@@ -381,47 +396,20 @@ def getGap(values):
             gaps.append(value)
     return gaps
 
-def distinctDamage(pixels):
-    xCoords = pixels[:,0]
-    yCoords = pixels[:,1]
-    gapsX = getGap(xCoords)
-    gapsY = getGap(yCoords)
-    distinct = []
-    independentOnX = []
-    index = 0
-    for gap in gapsX:
-        #print(gap)
-        for pixelNumber in range(index, len(pixels)):
-            if pixels[pixelNumber][0] < gap:
-                distinct.append(pixels[pixelNumber])
-                #print(distinct, 'Ran')
-                index += 1
-            else:
-                independentOnX.append(distinct)
-                distinct = []
-                break
-    independentOnXY = []
-    distinct = []
-    if(gapsY != []):
-        for crack in independentOnX:
-            for gap in gapsY:
-                print(gap, 'y')
-                for pixelNumber in range(index, len(crack)):
-                    if pixels[crack][1] < gap:
-                        distinct.append(crack[pixelNumber])
-                        index += 1
-                    else:
-                        independentOnXY.append(distinct)
-                        distinct = []
-                        break
-    else:
-        return independentOnX
-    return independentOnXY
+def distinctDamage(pixelTested, maxI, maxJ):
+    global allDamagedPixels
+    for adjacent in getAdjacent(pixelTested[0], pixelTested[1], maxI, maxJ):
+        if adjacent in allDamagedPixels:
+            allDamagedPixels = np.delete(allDamagedPixels, np.where(pixelTested == allDamagedPixels), axis=0)
+            print(len(allDamagedPixels))
+            return np.append([pixelTested], distinctDamage(adjacent, maxI, maxJ))
+    return [pixelTested]
+
 
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
-    numFrames = 10
+    numFrames = 1
     readFramesFromImage(videoFilename, frameFolderName, numFrames)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
@@ -435,11 +423,14 @@ def __main__():
         damageInFrame = []
         damageInFrame.append(partialCrackCheckHor(frame, 5, True, "horizontal"+str(count)))
         damageInFrame.append(partialCrackCheckVer(frame, 5, True, "vertical"+str(count)))
-        allDamagedPixels = []
+        
+        cracks = []
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
-        print(distinctDamage(np.array(allDamagedPixels)))
+        while len(allDamagedPixels) != 0:
+            cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
+        print(len(cracks))
         count += 1
     #print(crackData)
     
