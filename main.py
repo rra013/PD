@@ -381,6 +381,43 @@ def getGap(values):
             gaps.append(value)
     return gaps
 
+def distinctDamage(pixels):
+    xCoords = pixels[:,0]
+    yCoords = pixels[:,1]
+    gapsX = getGap(xCoords)
+    gapsY = getGap(yCoords)
+    distinct = []
+    independentOnX = []
+    index = 0
+    for gap in gapsX:
+        #print(gap)
+        for pixelNumber in range(index, len(pixels)):
+            if pixels[pixelNumber][0] < gap:
+                distinct.append(pixels[pixelNumber])
+                #print(distinct, 'Ran')
+                index += 1
+            else:
+                independentOnX.append(distinct)
+                distinct = []
+                break
+    independentOnXY = []
+    distinct = []
+    if(gapsY != []):
+        for crack in independentOnX:
+            for gap in gapsY:
+                print(gap, 'y')
+                for pixelNumber in range(index, len(crack)):
+                    if pixels[crack][1] < gap:
+                        distinct.append(crack[pixelNumber])
+                        index += 1
+                    else:
+                        independentOnXY.append(distinct)
+                        distinct = []
+                        break
+    else:
+        return independentOnX
+    return independentOnXY
+
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
@@ -402,9 +439,10 @@ def __main__():
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
-        print(allDamagedPixels)
+        print(distinctDamage(np.array(allDamagedPixels)))
         count += 1
     #print(crackData)
+    
     print("--- %s seconds ---" % (time.time() - start_time))
 
 if(__name__ == '__main__'):
