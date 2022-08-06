@@ -13,7 +13,12 @@ from skimage.color import rgb2gray
 import matplotlib as plt
 import cv2
 from PIL import ImageFile
+from random import randrange
+import sys
+print(sys.getrecursionlimit())
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 
 #Folder where annotated images go
 annotatedFilename = "Annotated Cracks"
@@ -268,7 +273,7 @@ def noiseRemoval(image):
                 returned[i][j] = 0
     return returned
 
-def saveAnnImage(cracks, maxI, maxJ, image, name):
+def createAnnotattableImage(maxI, maxJ, image):
     annotatedImage = []
     for i in range(maxI):
         for j in range(maxJ):
@@ -276,10 +281,8 @@ def saveAnnImage(cracks, maxI, maxJ, image, name):
                 annotatedImage.append([0, 0, 0])
             else:
                 annotatedImage.append([255, 255, 255])
-    annotatedImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
-    for pixel in cracks:
-        annotatedImage[pixel[0]][pixel[1]] = [50, 200, 200]
-    io.imsave(annotatedFilename+"\\"+name+".jpg", annotatedImage)
+    annotatableImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
+    return annotatableImage
 
 def readFramesFromImage(imagePath, folderName, numFrames=-1):
     """Read and save NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
@@ -398,13 +401,20 @@ def getGap(values):
 
 def distinctDamage(pixelTested, maxI, maxJ):
     global allDamagedPixels
+    returned = np.array(pixelTested)
+    if pixelTested in allDamagedPixels:
+                allDamagedPixels.remove(pixelTested)
     for adjacent in getAdjacent(pixelTested[0], pixelTested[1], maxI, maxJ):
-        if adjacent in allDamagedPixels:
-            allDamagedPixels = np.delete(allDamagedPixels, np.where(pixelTested == allDamagedPixels), axis=0)
+        if adjacent in allDamagedPixels and adjacent != pixelTested:
             print(len(allDamagedPixels))
-            return np.append([pixelTested], distinctDamage(adjacent, maxI, maxJ))
-    return [pixelTested]
+            returned = np.append(returned, distinctDamage(adjacent, maxI, maxJ)) 
+    return returned
 
+def createRandomColorList(n):
+    returned = []
+    for i in range(n):
+        returned.append([0, 0, randrange(100, 255)])
+    return returned
 
 def __main__():
     start_time = time.time()
@@ -419,18 +429,29 @@ def __main__():
         print(count)
         processedFrames.append(cracksInImage(frame, 0.3, True)[:])
     for frame in processedFrames:
-        frame = trimImage(frame, [400, 800])
+        frame = trimImage(frame, [450, 800])
         damageInFrame = []
-        damageInFrame.append(partialCrackCheckHor(frame, 5, True, "horizontal"+str(count)))
-        damageInFrame.append(partialCrackCheckVer(frame, 5, True, "vertical"+str(count)))
+        damageInFrame.append(partialCrackCheckHor(frame, 5, False, "horizontal"+str(count)))
+        damageInFrame.append(partialCrackCheckVer(frame, 5, False, "vertical"+str(count)))
         
         cracks = []
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
+        print(allDamagedPixels)
+        sys.setrecursionlimit(len(allDamagedPixels))
         while len(allDamagedPixels) != 0:
             cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
-        print(len(cracks))
+            print(len(allDamagedPixels))
+        #print(cracks)
+        #print(len(cracks))
+        annotatable = createAnnotattableImage(len(frame), len(frame[0]), frame)
+        colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]#createRandomColorList(len(cracks))
+        #print(colors)
+        for i in range(len(cracks)):
+            for pixel in np.reshape(cracks[i], (len(cracks[i])//2, 2)):
+                annotatable[pixel[0]][pixel[1]] = colors[i%3]
+        io.imsave(annotatedFilename+"\\"+"colorTest"+".jpg", annotatable)
         count += 1
     #print(crackData)
     
