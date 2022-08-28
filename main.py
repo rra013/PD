@@ -406,7 +406,7 @@ def distinctDamage(pixelTested, maxI, maxJ):
                 allDamagedPixels.remove(pixelTested)
     for adjacent in getAdjacent(pixelTested[0], pixelTested[1], maxI, maxJ):
         if adjacent in allDamagedPixels and adjacent != pixelTested:
-            print(len(allDamagedPixels))
+            #print(len(allDamagedPixels))
             returned = np.append(returned, distinctDamage(adjacent, maxI, maxJ)) 
     return returned
 
@@ -419,7 +419,9 @@ def createRandomColorList(n):
 def __main__():
     start_time = time.time()
     frameFolderName = "data"
-    numFrames = 1
+    numFrames = -1
+    saveInBetween = True
+    partialCrackLength = 10
     readFramesFromImage(videoFilename, frameFolderName, numFrames)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
@@ -431,15 +433,15 @@ def __main__():
     for frame in processedFrames:
         frame = trimImage(frame, [450, 800])
         damageInFrame = []
-        damageInFrame.append(partialCrackCheckHor(frame, 5, False, "horizontal"+str(count)))
-        damageInFrame.append(partialCrackCheckVer(frame, 5, False, "vertical"+str(count)))
+        damageInFrame.append(partialCrackCheckHor(frame, partialCrackLength, saveInBetween, "horizontal"+str(count)))
+        damageInFrame.append(partialCrackCheckVer(frame, partialCrackLength, saveInBetween, "vertical"+str(count)))
         
         cracks = []
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
         print(allDamagedPixels)
-        sys.setrecursionlimit(len(allDamagedPixels))
+        sys.setrecursionlimit(len(allDamagedPixels)*100)
         while len(allDamagedPixels) != 0:
             cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
             print(len(allDamagedPixels))
@@ -447,11 +449,13 @@ def __main__():
         #print(len(cracks))
         annotatable = createAnnotattableImage(len(frame), len(frame[0]), frame)
         colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]#createRandomColorList(len(cracks))
-        #print(colors)
+        print(count)
+        print(cracks)
+        #print(np.reshape(cracks, (len(cracks)//2, 2)))
         for i in range(len(cracks)):
             for pixel in np.reshape(cracks[i], (len(cracks[i])//2, 2)):
                 annotatable[pixel[0]][pixel[1]] = colors[i%3]
-        io.imsave(annotatedFilename+"\\"+"colorTest"+".jpg", annotatable)
+        io.imsave(annotatedFilename+"\\"+"colorTest"+str(count)+".jpg", annotatable)
         count += 1
     #print(crackData)
     
