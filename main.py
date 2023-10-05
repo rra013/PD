@@ -3,7 +3,6 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-import matplotlib.pyplot as plt
 import os
 from skimage import io
 from skimage.filters.rank import entropy
@@ -11,11 +10,15 @@ from skimage.morphology import disk
 from skimage.morphology import closing
 from skimage.color import rgb2gray
 import matplotlib as plt
+import tkinter as tk
+#from tkinterdnd2 import DND_FILES, TkinterDnD
 import cv2
 from PIL import ImageFile
 from random import randrange
 import sys
-print(sys.getrecursionlimit())
+import threading
+
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -44,7 +47,7 @@ def getImageList():
     return imgList
 
 #List of images to process
-imagesToAverage = getImageList()
+#imagesToAverage = getImageList()
 
 def findNextRight(image, pixel, maxI, maxJ):
     """Find the next black pixel to the right of PIXEL in IMAGE with height MAXI and length MAXJ"""
@@ -88,7 +91,6 @@ def maxFinder(image, jumpSize, output, function, name="crack"):
     maxList = []
     for i in range(0, maxI, jumpSize):
         for j in range(0, maxJ, jumpSize):
-            print([i, j])
             if [i, j] in maxList:
                 continue
             else:
@@ -113,7 +115,6 @@ def maxFinder(image, jumpSize, output, function, name="crack"):
                 else:
                     annotatedImage.append([255, 255, 255])
         annotatedImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
-        print(len(annotatedImage), len(annotatedImage[0]), maxList)
         for pixel in maxList:
             annotatedImage[pixel[0]][pixel[1]] = [255, 0, 0]
         io.imsave(annotatedFilename+"\\"+name+'.jpg', annotatedImage)
@@ -134,13 +135,10 @@ def verticalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False, n
     trimmed = trimImage(image, trimParameters)
     maxI = len(trimmed)
     maxJ = len(trimmed[0])
-
-    print(len(image), len(image[0]), len(trimmed))
     for i in range(len(trimmed[0])):
         conformityToVerticalCrack.append(sum(trimmed[:,i])/len(trimmed[:,i]))
         if conformityToVerticalCrack[i] < threshold:
             cracks.append(i)
-    print(cracks)
     if save:
         annotatedImage = []
         for i in range(maxI):
@@ -165,12 +163,10 @@ def horizontalCrackCheck(image, trimParameters=[0,0], threshold=0.5, save=False,
     maxI = len(trimmed)
     maxJ = len(trimmed[0])
 
-    print(len(image), len(image[0]), len(trimmed))
     for i in range(len(trimmed)):
         conformityToHorizontalCrack.append(sum(trimmed[i,:])/len(trimmed[i,:]))
         if conformityToHorizontalCrack[i] < threshold:
             cracks.append(i)
-    print(cracks)
     if save:
         annotatedImage = []
         for i in range(maxI):
@@ -242,7 +238,7 @@ def cracksInImage(imageName, threshold, save, closes=1):
     for i in range(closes):
         processedImage = closing(processedImage)
     if save:
-        io.imsave(finalImageFolderName+"\\"+imageName[len(testImageFolderName):], processedImage)
+        io.imsave(finalImageFolderName+"\\"+imageName, processedImage)
     return processedImage
 
 def markingsInImage(imageName, save, saveFolder=finalImageFolderName):
@@ -263,7 +259,6 @@ def noiseRemoval(image):
     returned = image[:]
     for i in range(len(image)):
         for j in range(len(image[0])):
-            print(i, j)
             count = 0
             for pixel in getAdjacent(i, j, len(image), len(image[0])):
                 count += image[pixel[0]][pixel[1]]
@@ -284,8 +279,8 @@ def createAnnotattableImage(maxI, maxJ, image):
     annotatableImage = np.reshape(annotatedImage, (maxI, maxJ, 3))
     return annotatableImage
 
-def readFramesFromImage(imagePath, folderName, numFrames=-1):
-    """Read and save NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
+def readFramesFromImage(imagePath, folderName, numFrames=-1, frameSkip=1):
+    """Read and save every FRAMESKIP frame in NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
     cam = cv2.VideoCapture(imagePath)
   
     try:
@@ -299,16 +294,20 @@ def readFramesFromImage(imagePath, folderName, numFrames=-1):
         print ('Error: Creating directory of data')
     
     # frame
-    currentframe = 0
+    currentFrame = 0
     
-    while(True):
+    while(cam.isOpened()):
         
         # reading from frame
         ret,frame = cam.read()
     
-        if ret:
+        
+        if numFrames <= currentFrame and numFrames > 0:
+            cam.release()
+            break
+        elif ret:
             # if video is still left continue creating images
-            name = './data/frame' + str(currentframe) + '.jpg'
+            name = './data/frame' + str(currentFrame) + '.jpg'
             print ('Creating...' + name)
     
             # writing the extracted images
@@ -316,15 +315,14 @@ def readFramesFromImage(imagePath, folderName, numFrames=-1):
     
             # increasing counter so that it will
             # show how many frames are created
-            currentframe += 1
+            currentFrame += frameSkip
             #print(currentframe, numFrames, currentframe==numFrames)
-            if currentframe == numFrames:
-                return "Done"
+            cam.set(cv2.CAP_PROP_POS_FRAMES, currentFrame)
         else:
+            cam.release()
             break
     
     # Release all space and windows once done
-    cam.release()
     cv2.destroyAllWindows()
 
 def partialCrackCheckHor(image, length, save, name="crack"):
@@ -379,7 +377,7 @@ def partialCrackCheckVer(image, length, save, name="crack"):
 def processFullImageDamageFromVideo():
     frameFolderName = "data"
     numFrames = 1
-    readFramesFromImage(videoFilename, frameFolderName, numFrames)
+    readFramesFromImage(videoFilename, frameFolderName, numFrames, 1000)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
     crackData = []
@@ -390,7 +388,6 @@ def processFullImageDamageFromVideo():
         crackData.append(verticalCrackCheck(frame, [400, 800], 0.6, True, "vertical"+str(count)))
         crackData.append(horizontalCrackCheck(frame, [400, 800], 0.6, True, "horizontal"+str(count)))
         count += 1
-    print(crackData)
 
 def getGap(values):
     gaps = []
@@ -402,8 +399,7 @@ def getGap(values):
 def distinctDamage(pixelTested, maxI, maxJ):
     global allDamagedPixels
     returned = np.array(pixelTested)
-    if pixelTested in allDamagedPixels:
-                allDamagedPixels.remove(pixelTested)
+    allDamagedPixels.remove(pixelTested)
     for adjacent in getAdjacent(pixelTested[0], pixelTested[1], maxI, maxJ):
         if adjacent in allDamagedPixels and adjacent != pixelTested:
             #print(len(allDamagedPixels))
@@ -417,46 +413,52 @@ def createRandomColorList(n):
     return returned
 
 def __main__():
+    global allDamagedPixels
     start_time = time.time()
     frameFolderName = "data"
-    numFrames = -1
+    numFrames = 10
+    frameSkip = 600
     saveInBetween = True
     partialCrackLength = 10
-    readFramesFromImage(videoFilename, frameFolderName, numFrames)
+    readFramesFromImage(videoFilename, frameFolderName, numFrames, frameSkip)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
     #crackData = []
-    count = 0
     for frame in frames:
-        print(count)
-        processedFrames.append(cracksInImage(frame, 0.3, True)[:])
-    for frame in processedFrames:
-        frame = trimImage(frame, [450, 800])
+        processedFrames.append(cracksInImage(frame, 0.3, True))
+    print('Frames: ', len(processedFrames))
+    for frameNum in range(len(processedFrames)):
+        allDamagedPixels = []
+        print(frameNum, len(processedFrames))
+        frame = trimImage(processedFrames[frameNum], [450, 800])
         damageInFrame = []
-        damageInFrame.append(partialCrackCheckHor(frame, partialCrackLength, saveInBetween, "horizontal"+str(count)))
-        damageInFrame.append(partialCrackCheckVer(frame, partialCrackLength, saveInBetween, "vertical"+str(count)))
-        
+        damageInFrame.append(partialCrackCheckHor(frame, partialCrackLength, saveInBetween, "horizontal"+str(frameNum)))
+        print('h')
+        damageInFrame.append(partialCrackCheckVer(frame, partialCrackLength, saveInBetween, "vertical"+str(frameNum)))
+        print('v')
         cracks = []
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
-        print(allDamagedPixels)
+        print('Damaeged:', len(allDamagedPixels))
         sys.setrecursionlimit(len(allDamagedPixels)*100)
         while len(allDamagedPixels) != 0:
-            cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
-            print(len(allDamagedPixels))
+            #cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
+            cracks.append(allDamagedPixels)
+            allDamagedPixels = []
+            print('Damaeged:', len(allDamagedPixels))
+        print(np.shape(cracks))
         #print(cracks)
         #print(len(cracks))
         annotatable = createAnnotattableImage(len(frame), len(frame[0]), frame)
         colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]#createRandomColorList(len(cracks))
-        print(count)
-        print(cracks)
+        #print(count)
+        #print(cracks)
         #print(np.reshape(cracks, (len(cracks)//2, 2)))
-        for i in range(len(cracks)):
-            for pixel in np.reshape(cracks[i], (len(cracks[i])//2, 2)):
-                annotatable[pixel[0]][pixel[1]] = colors[i%3]
-        io.imsave(annotatedFilename+"\\"+"colorTest"+str(count)+".jpg", annotatable)
-        count += 1
+        #for i in range(len(cracks)):
+        for pixel in cracks:#np.reshape(cracks[i], (len(cracks[i])//2, 2)):
+            annotatable[pixel[0]][pixel[1]] = colors[0]
+        io.imsave(annotatedFilename+"\\"+"Cracks"+str(frameNum)+".jpg", annotatable)
     #print(crackData)
     
     print("--- %s seconds ---" % (time.time() - start_time))
