@@ -281,6 +281,8 @@ def createAnnotattableImage(maxI, maxJ, image):
 
 def readFramesFromImage(imagePath, folderName, numFrames=-1, frameSkip=1):
     """Read and save every FRAMESKIP frame in NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
+def readFramesFromImage(imagePath, folderName, numFrames=-1, frameSkip=1):
+    """Read and save every FRAMESKIP frame in NUMFRAMES (or all if not given) frames from video at IMAGEPATH in folder FOLDERNAME"""
     cam = cv2.VideoCapture(imagePath)
   
     try:
@@ -416,8 +418,7 @@ def __main__():
     global allDamagedPixels
     start_time = time.time()
     frameFolderName = "data"
-    numFrames = 10
-    frameSkip = 600
+    numFrames = -1
     saveInBetween = True
     partialCrackLength = 10
     readFramesFromImage(videoFilename, frameFolderName, numFrames, frameSkip)
@@ -440,25 +441,23 @@ def __main__():
         for list in damageInFrame:
             for pixel in list:
                 allDamagedPixels.append(pixel)
-        print('Damaeged:', len(allDamagedPixels))
+        print(allDamagedPixels)
         sys.setrecursionlimit(len(allDamagedPixels)*100)
         while len(allDamagedPixels) != 0:
-            #cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
-            cracks.append(allDamagedPixels)
-            allDamagedPixels = []
-            print('Damaeged:', len(allDamagedPixels))
-        print(np.shape(cracks))
+            cracks.append(distinctDamage(allDamagedPixels[0], len(frame),len(frame[0])))
+            print(len(allDamagedPixels))
         #print(cracks)
         #print(len(cracks))
         annotatable = createAnnotattableImage(len(frame), len(frame[0]), frame)
         colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]#createRandomColorList(len(cracks))
-        #print(count)
-        #print(cracks)
+        print(count)
+        print(cracks)
         #print(np.reshape(cracks, (len(cracks)//2, 2)))
-        #for i in range(len(cracks)):
-        for pixel in cracks:#np.reshape(cracks[i], (len(cracks[i])//2, 2)):
-            annotatable[pixel[0]][pixel[1]] = colors[0]
-        io.imsave(annotatedFilename+"\\"+"Cracks"+str(frameNum)+".jpg", annotatable)
+        for i in range(len(cracks)):
+            for pixel in np.reshape(cracks[i], (len(cracks[i])//2, 2)):
+                annotatable[pixel[0]][pixel[1]] = colors[i%3]
+        io.imsave(annotatedFilename+"\\"+"colorTest"+str(count)+".jpg", annotatable)
+        count += 1
     #print(crackData)
     
     print("--- %s seconds ---" % (time.time() - start_time))
