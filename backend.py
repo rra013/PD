@@ -15,6 +15,7 @@ import cv2
 from PIL import ImageFile
 from random import randrange
 import sys
+from flask import Flask, render_template, request, jsonify
 print(sys.getrecursionlimit())
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -417,7 +418,7 @@ def createRandomColorList(n):
         returned.append([0, 0, randrange(100, 255)])
     return returned
 
-def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1):
+def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, progress={}):
     start_time = time.time()
     frameFolderName = "data"
     numFrames = frameLimit
@@ -425,13 +426,18 @@ def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1):
     saveInBetween = True
     partialCrackLength = 10
     whiteThresh = contrastThresh
+
+    progress['status'] = 'Reading images from video...'
+    
     readFramesFromImage(file, frameFolderName, numFrames, frameSkip)
     frames = getVideoFrames(frameFolderName)
     processedFrames = []
     count = 0
+    progress['status'] = 'Processing frames...'
     for frame in frames:
         print(count)
         processedFrames.append(cracksInImage(frame, whiteThresh, True)[:])
+    progress['status'] = 'Analyzing for damage...'
     for frame in processedFrames:
         frame = trimImage(frame, [450, 800])
         damageInFrame = []
@@ -453,7 +459,7 @@ def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1):
         count += 1
     #print(crackData)
     
-    print("--- %s seconds ---" % (time.time() - start_time))
+    progress['status'] = "Process completed in %s seconds." % (time.time() - start_time)
 
 def __main__():
     execute(videoFilename, 0.3, 60, 1)

@@ -1,21 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Processor</title>
-</head>
-<body>
-    <form action="http://127.0.0.1:5000/process" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept="video/*" required>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Video Processor</title>
+    </head>
+    <body>
+        <form action="http://127.0.0.1:5000/process" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept="video/*" required>
+            
+            <input type="text" name="param1" placeholder="Contrast Threshold" required>
+            <input type="text" name="param2" placeholder="Number of Frames" required>
+            <input type="text" name="param3" placeholder="Frames to Skip" required>
+
+            <input type="submit" value="Submit">
+        </form>
+
         
-        <input type="text" name="param1" placeholder="Contrast Threshold" required>
-        <input type="text" name="param2" placeholder="Number of Frames" required>
-        <input type="text" name="param3" placeholder="Frames to Skip" required>
+        <div id="status"></div>
 
-        <input type="submit" value="Submit">
-    </form>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script>
+            document.querySelector('form').addEventListener('submit', function(event) {
+                event.preventDefault();
 
-    <div>{{ message }}</div>
-</body>
+                var formData = new FormData(this);
+                fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(response) {
+                    if(response.status === 202) {
+                        pollForUpdates();
+                    }
+                });
+            });
+
+            function pollForUpdates() {
+                fetch('/status').then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    console.log(data);
+                    document.getElementById('status').textContent = data.status;
+
+                    if(data.status.slice(0, 17) !== 'Process completed') {
+                        setTimeout(pollForUpdates, 1000);  // Poll every second
+                    }
+                });
+            }
+
+            pollForUpdates();
+        </script>
+    </body>
 </html>

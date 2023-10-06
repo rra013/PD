@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, flash, url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, render_template, request, jsonify
 import os
 from backend import execute
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  # Necessary for using flashed messages
+
+progress = {'status': 'Ready to begin.'}
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -33,9 +35,14 @@ def process_video():
 
     return redirect('/')
 
+@app.route('/status')
+def status():
+    return jsonify(progress)
+
 def run_python_script(video_path, param1, param2, param3):
     # Replace with your Python code that processes the video
-    execute(video_path, float(param1), int(param2), int(param3))
+    execute(video_path, float(param1), int(param2), int(param3), progress)
+    return "Processing started", 202
 
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
