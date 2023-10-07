@@ -418,7 +418,7 @@ def createRandomColorList(n):
         returned.append([0, 0, randrange(100, 255)])
     return returned
 
-def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, progress={}):
+def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, classifierThresh=0.1, progress={}):
     start_time = time.time()
     frameFolderName = "data"
     numFrames = frameLimit
@@ -426,7 +426,7 @@ def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, progress={}):
     saveInBetween = True
     partialCrackLength = 10
     whiteThresh = contrastThresh
-
+    damagedFrames = []
     progress['status'] = 'Reading images from video...'
     
     readFramesFromImage(file, frameFolderName, numFrames, frameSkip)
@@ -452,14 +452,19 @@ def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, progress={}):
         annotatable = createAnnotattableImage(len(frame), len(frame[0]), frame)
         colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]#createRandomColorList(len(cracks))
         #print('dif',damageInFrame)
+        dpCount = 0
         for i in range(len(damageInFrame)):
             for pixel in damageInFrame[i]:
                 annotatable[pixel[0]][pixel[1]] = colors[0]
+                dpCount += 1
+        if  classifierThresh <= dpCount/(len(annotatable) * len(annotatable[0])):
+            damagedFrames.append("Cracks"+str(count)+".jpg")
         io.imsave(annotatedFilename+"\\"+"Cracks"+str(count)+".jpg", annotatable)
         count += 1
     #print(crackData)
     
     progress['status'] = "Process completed in %s seconds." % (time.time() - start_time)
+    return damagedFrames
 
 def __main__():
     execute(videoFilename, 0.3, 60, 1)

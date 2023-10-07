@@ -12,7 +12,7 @@
             <input type="text" name="param1" placeholder="Contrast Threshold" required>
             <input type="text" name="param2" placeholder="Number of Frames" required>
             <input type="text" name="param3" placeholder="Frames to Skip" required>
-
+            <input type="text" name="param4" placeholder="Threshold for Damaged Classification" required>
             <input type="submit" value="Submit">
         </form>
 
@@ -29,9 +29,7 @@
                     method: 'POST',
                     body: formData
                 }).then(function(response) {
-                    if(response.status === 202) {
-                        pollForUpdates();
-                    }
+                    pollForUpdates();
                 });
             });
 
@@ -42,9 +40,7 @@
                     console.log(data);
                     document.getElementById('status').textContent = data.status;
 
-                    if(data.status.slice(0, 17) !== 'Process completed') {
-                        setTimeout(pollForUpdates, 1000);  // Poll every second
-                    }
+                    setTimeout(pollForUpdates, 1000);  // Poll every second
                 });
             }
 

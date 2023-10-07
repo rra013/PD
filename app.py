@@ -30,7 +30,8 @@ def process_video():
             run_python_script(filename, 
                               request.form['param1'], 
                               request.form['param2'], 
-                              request.form['param3'])
+                              request.form['param3'],
+                              request.form['param4'])
             flash('File uploaded and processed successfully!')
 
     return redirect('/')
@@ -39,9 +40,12 @@ def process_video():
 def status():
     return jsonify(progress)
 
-def run_python_script(video_path, param1, param2, param3):
+def run_python_script(video_path, param1, param2, param3, param4):
     # Replace with your Python code that processes the video
-    execute(video_path, float(param1), int(param2), int(param3), progress)
+    damagedFrames = execute(video_path, float(param1), int(param2), int(param3), float(param4), progress)
+    progress['status'] = progress['status'] + '\nList of filenames where damage has exceeded threshold: '
+    for name in damagedFrames:
+        progress['status'] = progress['status'] + '\n' + name
     return "Processing started", 202
 
 if __name__ == '__main__':
