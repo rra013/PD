@@ -50,4 +50,5 @@ def run_python_script(video_path, param1, param2, param3, param4):
 
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs("Damaged Asphault", exist_ok=True)
     app.run(debug=True)

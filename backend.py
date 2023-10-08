@@ -33,6 +33,8 @@ testImageFolderName = "Test Images"
 saveImageFolderName = "Processed Images"
 #Where black/white images are saved
 finalImageFolderName = "Cracks"
+#Where frames from the video containing damaged pavement are stored
+outputFolder = "Damaged Asphault"
 #Global list of damaged pixels
 allDamagedPixels = []
 
@@ -459,6 +461,7 @@ def execute(file, contrastThresh=0.3, frameLimit=-1, skipNum=1, classifierThresh
                 dpCount += 1
         if  classifierThresh <= dpCount/(len(annotatable) * len(annotatable[0])):
             damagedFrames.append("Cracks"+str(count)+".jpg")
+            io.imsave(outputFolder+"\\"+"Frame"+str(count)+".jpg", io.imread(frames[count]))
         io.imsave(annotatedFilename+"\\"+"Cracks"+str(count)+".jpg", annotatable)
         count += 1
     #print(crackData)
